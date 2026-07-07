@@ -17,6 +17,7 @@ import {
   createVenusTexture,
   createUranusTexture,
   createNeptuneTexture,
+  createMoonTexture,
 } from './textures.js'
 
 export class SolarSystem {
@@ -171,6 +172,14 @@ export class SolarSystem {
         this._createRing(mesh, data)
       }
 
+      // 卫星（月球绕地球）
+      let moonPivot = null, moonMesh = null
+      if (data.moon) {
+        const result = this._createMoon(orbitGroup, data)
+        moonPivot = result.pivot
+        moonMesh = result.mesh
+      }
+
       // 轨道线
       this._createOrbitLine(data)
 
@@ -180,6 +189,9 @@ export class SolarSystem {
         orbitGroup,
         angle: Math.random() * Math.PI * 2,
         cloudMesh: data.hasClouds ? mesh.children.find(c => c.userData.isCloud) : null,
+        moonPivot,
+        moonMesh,
+        moonAngle: 0,
       })
     })
   }
@@ -297,6 +309,54 @@ export class SolarSystem {
   }
 
   // ════════════════════════════════════════
+  //  月球
+  // ════════════════════════════════════════
+
+  _createMoon(orbitGroup, data) {
+    const moonData = data.moon
+
+    // 月球轨道枢轴 — 位于地球相同位置
+    const pivot = new THREE.Group()
+    pivot.position.x = data.orbitRadius
+    orbitGroup.add(pivot)
+
+    // 月球球体
+    const geo = new THREE.SphereGeometry(moonData.radius, 32, 32)
+    const mat = new THREE.MeshStandardMaterial({
+      roughness: 0.85,
+      metalness: 0.05,
+    })
+    const mesh = new THREE.Mesh(geo, mat)
+    mesh.rotation.z = THREE.MathUtils.degToRad(moonData.tilt)
+    mesh.position.x = moonData.orbitRadius
+
+    // 月球纹理
+    mat.map = createMoonTexture()
+    mat.color.setHex(0xffffff)
+    mat.needsUpdate = true
+
+    pivot.add(mesh)
+
+    // 月球轨道线（绕地球的小圆环）
+    const curve = new THREE.EllipseCurve(
+      0, 0, moonData.orbitRadius, moonData.orbitRadius, 0, 2 * Math.PI, false, 0,
+    )
+    const pts = curve.getPoints(64)
+    const lineGeo = new THREE.BufferGeometry().setFromPoints(
+      pts.map(p => new THREE.Vector3(p.x, 0, p.y)),
+    )
+    const lineMat = new THREE.LineBasicMaterial({
+      color: 0x88aacc,
+      transparent: true,
+      opacity: 0.2,
+    })
+    const orbitLine = new THREE.Line(lineGeo, lineMat)
+    pivot.add(orbitLine)
+
+    return { pivot, mesh }
+  }
+
+  // ════════════════════════════════════════
   //  星空
   // ════════════════════════════════════════
 
@@ -388,6 +448,17 @@ export class SolarSystem {
         // 云层独立慢速旋转
         if (p.cloudMesh) {
           p.cloudMesh.rotation.y += rotSpeed * 0.6
+        }
+      }
+
+      // 月球公转（绕地球）
+      if (p.moonPivot && data.moon) {
+        p.moonAngle += (deltaDays / data.moon.orbitPeriod) * Math.PI * 2
+        p.moonPivot.rotation.y = p.moonAngle
+
+        // 潮汐锁定 — 月球自转周期等于公转周期
+        if (p.moonMesh) {
+          p.moonMesh.rotation.y += (deltaDays / data.moon.orbitPeriod) * Math.PI * 2
         }
       }
     })

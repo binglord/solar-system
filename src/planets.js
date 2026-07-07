@@ -41,6 +41,16 @@ export const PLANET_DATA = [
     metalness: 0.05,
     hasAtmosphere: true,
     hasClouds: true,
+    // 月球数据 — 绕地球公转
+    moon: {
+      name: '月球',
+      nameEn: 'Moon',
+      radius: 0.27,            // 约地球的 1/4
+      orbitRadius: 2.2,        // 距地球的视觉距离
+      orbitPeriod: 27.3,       // 恒星月（真实值）
+      rotationPeriod: 27.3,    // 潮汐锁定（真实值）
+      tilt: 6.68,              // 轨道倾角
+    },
   },
   {
     name: '火星',

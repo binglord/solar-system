@@ -559,6 +559,96 @@ export function createVenusTexture() {
 }
 
 // ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+//  月球纹理 — 灰色多坑表面
+// ══════════════════════════════════════════════════════
+
+export function createMoonTexture() {
+  const W = 1024, H = 512
+  const c = document.createElement('canvas')
+  c.width = W; c.height = H
+  const ctx = c.getContext('2d')
+  const rng = mulberry32(31)
+
+  // 灰色基底
+  ctx.fillStyle = '#b0b0b0'
+  ctx.fillRect(0, 0, W, H)
+
+  // 较亮/较暗区域（月海 + 高地）
+  for (let i = 0; i < 80; i++) {
+    const x = rng() * W, y = rng() * H
+    const rx = 10 + rng() * 50, ry = 5 + rng() * 35
+    const bright = Math.floor(80 + rng() * 80)
+    ctx.fillStyle = `rgba(${bright},${bright},${bright},${0.15 + rng() * 0.35})`
+    ctx.beginPath()
+    ctx.ellipse(x, y, rx, ry, rng() * 0.5, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // 大型月海（暗色区域）
+  const maria = [
+    [0.48, 0.45, 35, 30],  // 雨海
+    [0.52, 0.52, 25, 22],  // 云海
+    [0.55, 0.48, 20, 18],  // 静海
+    [0.44, 0.48, 18, 20],  // 风暴洋（部分）
+    [0.50, 0.42, 15, 14],  // 澄海
+    [0.56, 0.56, 15, 12],  // 丰富海
+    [0.46, 0.56, 12, 10],  // 湿海
+  ]
+  maria.forEach(([x, y, rx, ry]) => {
+    const cx = x * W, cy = y * H
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry))
+    grad.addColorStop(0, 'rgba(60,60,65,0.5)')
+    grad.addColorStop(0.6, 'rgba(80,80,88,0.35)')
+    grad.addColorStop(1, 'rgba(176,176,176,0)')
+    ctx.fillStyle = grad
+    ctx.beginPath()
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
+    ctx.fill()
+  })
+
+  // 大量陨石坑
+  for (let i = 0; i < 200; i++) {
+    const x = rng() * W, y = rng() * H
+    const r = 1 + rng() * 12
+    const dark = Math.floor(70 + rng() * 60)
+    ctx.fillStyle = `rgba(${dark},${dark},${dark},0.5)`
+    ctx.beginPath()
+    ctx.arc(x, y, r, 0, Math.PI * 2)
+    ctx.fill()
+    // 环形山边缘高光
+    ctx.fillStyle = `rgba(220,220,220,${0.1 + rng() * 0.2})`
+    ctx.beginPath()
+    ctx.arc(x - r * 0.2, y - r * 0.2, r * 1.05, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // 第谷环形山（辐射纹）
+  const tychoX = 0.82 * W, tychoY = 0.78 * H
+  ctx.fillStyle = 'rgba(180,180,180,0.4)'
+  ctx.beginPath()
+  ctx.arc(tychoX, tychoY, 5, 0, Math.PI * 2)
+  ctx.fill()
+  for (let i = 0; i < 12; i++) {
+    const angle = rng() * Math.PI * 2
+    const len = 20 + rng() * 50
+    ctx.strokeStyle = `rgba(200,200,200,${0.08 + rng() * 0.12})`
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(tychoX, tychoY)
+    ctx.lineTo(tychoX + Math.cos(angle) * len, tychoY + Math.sin(angle) * len)
+    ctx.stroke()
+  }
+
+  addNoise(ctx, W, H, 0.03, 0.5, 31)
+
+  const tex = new THREE.CanvasTexture(c)
+  tex.wrapS = THREE.RepeatWrapping
+  tex.wrapT = THREE.ClampToEdgeWrapping
+  return tex
+}
+
+// ══════════════════════════════════════════════════════
 //  天王星纹理
 // ══════════════════════════════════════════════════════
 
