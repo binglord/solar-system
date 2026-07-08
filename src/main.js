@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { SolarSystem } from './solar-system.js'
 import { ControlPanel } from './ui.js'
+import { createHand } from './hand.js'
 
 // ─── 场景初始化 ───
 const scene = new THREE.Scene()
@@ -32,6 +33,19 @@ controls.target.set(0, 0, 0)
 
 // ─── 太阳系 ───
 const solarSystem = new SolarSystem(scene)
+
+// ─── 手掌（从下方托举太阳系） ───
+const hand = createHand()
+scene.add(hand)
+
+// ─── 手掌专用照明 ───
+const handLight = new THREE.PointLight(0xffccaa, 2.0, 80)
+handLight.position.set(0, -28, 20)
+scene.add(handLight)
+
+const handFill = new THREE.DirectionalLight(0xbbddff, 0.8)
+handFill.position.set(30, -15, 30)
+scene.add(handFill)
 
 // ─── 控制面板 ───
 let speed = 1
