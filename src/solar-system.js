@@ -31,6 +31,7 @@ export class SolarSystem {
     this.elapsedDays = 0
     this._createSun()
     this._createPlanets()
+    this._createAsteroidBelt()
     this._createStarfield()
   }
 
@@ -357,6 +358,126 @@ export class SolarSystem {
   }
 
   // ════════════════════════════════════════
+  //  小行星带
+  // ════════════════════════════════════════
+
+  _createAsteroidBelt() {
+    const count = 1200
+    const rockCache = {}  // 按级别缓存几何体
+
+    function getRockGeo(level) {
+      if (!rockCache[level]) {
+        const detail = level // 0 = 20面体, 1 = 80面, 2 = 320面
+        const geo = new THREE.IcosahedronGeometry(1, detail)
+        // 随机扰动顶点使其不规则
+        const pos = geo.attributes.position
+        for (let i = 0; i < pos.count; i++) {
+          const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i)
+          const jitter = 0.15 + Math.random() * 0.50
+          pos.setXYZ(i, x + (Math.random() - 0.5) * jitter, y + (Math.random() - 0.5) * jitter, z + (Math.random() - 0.5) * jitter)
+        }
+        pos.needsUpdate = true
+        geo.computeVertexNormals()
+        rockCache[level] = geo
+      }
+      return rockCache[level]
+    }
+
+    this.asteroids = []
+
+    // 小行星带轨道环（内/外两条半透明环线）
+    const ringMat = new THREE.LineBasicMaterial({
+      color: 0x887766,
+      transparent: true,
+      opacity: 0.12,
+    })
+    ;[24, 27, 30].forEach(r => {
+      const curve = new THREE.EllipseCurve(0, 0, r, r, 0, 2 * Math.PI, false, 0)
+      const pts = curve.getPoints(96)
+      const lineGeo = new THREE.BufferGeometry().setFromPoints(
+        pts.map(p => new THREE.Vector3(p.x, 0, p.y)),
+      )
+      const line = new THREE.Line(lineGeo, ringMat)
+      this.scene.add(line)
+    })
+
+    // 主带内/外半径
+    const innerR = 24
+    const outerR = 30
+
+    for (let i = 0; i < count; i++) {
+      // 轨道半径（不均匀分布，模拟 Kirkwood 间隙）
+      let r
+      const roll = Math.random()
+      if (roll < 0.15) {
+        r = innerR + Math.random() * 1.5
+      } else if (roll < 0.35) {
+        r = innerR + 2.5 + Math.random() * 1.5
+      } else if (roll < 0.55) {
+        r = innerR + 5.0 + Math.random() * 1.0
+      } else if (roll < 0.75) {
+        r = innerR + 7.0 + Math.random() * 1.5
+      } else {
+        r = innerR + 2 + Math.random() * 6
+      }
+
+      // 角度
+      const angle = Math.random() * Math.PI * 2
+      // 垂直偏移（小行星带厚度）
+      const vOffset = (Math.random() - 0.5) * 2.5
+
+      // 大小和细节
+      const sizeRoll = Math.random()
+      let size, level
+      if (sizeRoll < 0.01) {
+        size = 0.25 + Math.random() * 0.35  // 少数大个的
+        level = 2
+      } else if (sizeRoll < 0.10) {
+        size = 0.12 + Math.random() * 0.18
+        level = 1
+      } else {
+        size = 0.04 + Math.random() * 0.10   // 大多数小碎石
+        level = 0
+      }
+
+      const geo = getRockGeo(level)
+      // 颜色：灰色到红褐色
+      const grey = 100 + Math.floor(Math.random() * 120)
+      const rCol = grey + Math.floor(Math.random() * 30)
+      const gCol = grey - Math.floor(Math.random() * 20)
+      const bCol = grey - Math.floor(Math.random() * 30)
+      const color = new THREE.Color(`rgb(${rCol},${gCol},${bCol})`)
+
+      const mat = new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.7 + Math.random() * 0.3,
+        metalness: 0.1 + Math.random() * 0.2,
+      })
+
+      const mesh = new THREE.Mesh(geo, mat)
+      mesh.scale.set(size, size, size)
+      mesh.position.set(
+        Math.cos(angle) * r,
+        vOffset,
+        Math.sin(angle) * r,
+      )
+      mesh.rotation.set(Math.random() * 6, Math.random() * 6, Math.random() * 6)
+
+      // 存储轨道参数用于更新
+      mesh.userData = {
+        orbitRadius: r,
+        angle,
+        speed: (0.8 + Math.random() * 0.4) * 0.08,  // 公转速度
+        rotSpeed: (Math.random() - 0.5) * 2,
+        vOffset,
+      }
+
+      this.scene.add(mesh)
+      this.asteroids.push(mesh)
+    }
+  }
+
+  // ════════════════════════════════════════
   //  星空
   // ════════════════════════════════════════
 
@@ -462,6 +583,19 @@ export class SolarSystem {
         }
       }
     })
+
+    // 小行星带更新
+    if (this.asteroids) {
+      this.asteroids.forEach(a => {
+        const ud = a.userData
+        ud.angle += ud.speed * deltaSeconds
+        a.position.x = Math.cos(ud.angle) * ud.orbitRadius
+        a.position.z = Math.sin(ud.angle) * ud.orbitRadius
+        a.rotation.x += ud.rotSpeed * deltaSeconds * 0.3
+        a.rotation.y += ud.rotSpeed * deltaSeconds * 0.5
+        a.rotation.z += ud.rotSpeed * deltaSeconds * 0.2
+      })
+    }
   }
 
   _updateSun(deltaSeconds) {
