@@ -2,7 +2,6 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { SolarSystem } from './solar-system.js'
 import { ControlPanel } from './ui.js'
-import { createHand } from './hand.js'
 
 // ─── 场景初始化 ───
 const scene = new THREE.Scene()
@@ -12,7 +11,7 @@ scene.background = new THREE.Color(0x080c1a)
 scene.fog = new THREE.Fog(0x080c1a, 500, 1200)
 
 const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 2000)
-camera.position.set(25, 15, 55)
+camera.position.set(28, 22, 48)
 
 const renderer = new THREE.WebGLRenderer({ antialias: true })
 renderer.setSize(window.innerWidth, window.innerHeight)
@@ -33,35 +32,6 @@ controls.target.set(0, 0, 0)
 
 // ─── 太阳系 ───
 const solarSystem = new SolarSystem(scene)
-
-// ─── 手掌（从下方托举太阳系） ───
-const hand = createHand()
-scene.add(hand)
-
-// ─── 手掌专用照明（让掌纹清晰可见） ───
-// 主光：从上前方照亮掌心
-const handKey = new THREE.DirectionalLight(0xffeedd, 2.5)
-handKey.position.set(0, 40, 60)
-scene.add(handKey)
-
-// 补光：从侧面补充，突出纹理凹凸
-const handFill1 = new THREE.DirectionalLight(0xccddff, 1.2)
-handFill1.position.set(-50, 20, 30)
-scene.add(handFill1)
-
-const handFill2 = new THREE.DirectionalLight(0xffddcc, 1.0)
-handFill2.position.set(50, 10, 20)
-scene.add(handFill2)
-
-// 背光：从下方打亮手轮廓
-const handRim = new THREE.DirectionalLight(0x8888ff, 0.6)
-handRim.position.set(0, -80, -40)
-scene.add(handRim)
-
-// 手掌聚光灯
-const handSpot = new THREE.PointLight(0xffddaa, 1.5, 200)
-handSpot.position.set(0, -30, 40)
-scene.add(handSpot)
 
 // ─── 控制面板 ───
 let speed = 1
